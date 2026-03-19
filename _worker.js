@@ -86,11 +86,15 @@ export default {
           let { userId, content } = await request.json();
           let topicId = null;
           let isNewUser = false;
-
+          if (userId && !/^\d+$/.test(String(userId))) {
+              userId = null;
+          }
           // 核心逻辑：如果前端没有 userId，则由 D1 数据库分配一个自增的数字 ID
           if (!userId) {
-              const insertRes = await env.db.prepare("INSERT INTO users (tg_topic_id) VALUES (NULL)").run();
-              userId = insertRes.meta.last_row_id; // 获取刚刚自增生成的最新数字 ID
+              // 生成 100000 到 999999 之间的随机 6 位数字
+              userId = Math.floor(100000 + Math.random() * 900000);
+              // 显式将这个 6 位随机数字 ID 插入数据库
+              await env.db.prepare("INSERT INTO users (id, tg_topic_id) VALUES (?, NULL)").bind(userId).run();
               isNewUser = true;
           } else {
               const user = await env.db.prepare("SELECT tg_topic_id FROM users WHERE id = ?").bind(userId).first();

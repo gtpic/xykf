@@ -13,11 +13,9 @@ export default {
       if (method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
       try {
-        // 动态读取数据库中的所有配置
         const configRows = await env.db.prepare("SELECT key, value FROM config").all();
         const config = Object.fromEntries(configRows.results.map(r => [r.key, r.value]));
 
-        // --- 辅助鉴权函数 ---
         async function checkAuth(req) {
           const authHeader = req.headers.get("Authorization");
           if (!authHeader || !authHeader.startsWith("Bearer ")) return false;
@@ -41,14 +39,12 @@ export default {
         if (url.pathname.startsWith("/api/admin/") && url.pathname !== "/api/admin/login") {
           if (!(await checkAuth(request))) return new Response("Unauthorized", { status: 401, headers: corsHeaders });
 
-          // 获取当前配置 (用于在设置面板回显)
           if (url.pathname === "/api/admin/config" && method === "GET") {
             return new Response(JSON.stringify({ 
               tg_bot_token: config.tg_bot_token, tg_chat_id: config.tg_chat_id 
             }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
           }
 
-          // 修改配置 (密码、TG等)
           if (url.pathname === "/api/admin/update-config" && method === "POST") {
             const { username, password, botToken, chatId } = await request.json();
             if (username) await env.db.prepare("UPDATE config SET value = ? WHERE key = 'admin_username'").bind(username).run();
@@ -77,7 +73,6 @@ export default {
           if (url.pathname === "/api/admin/reply" && method === "POST") {
             const { userId, content } = await request.json();
             await env.db.prepare("INSERT INTO messages (user_id, sender, content) VALUES (?, 'agent', ?)").bind(userId, content).run();
-            // 同步发给 TG
             if (config.tg_bot_token && config.tg_chat_id) {
                 const user = await env.db.prepare("SELECT tg_topic_id FROM users WHERE id = ?").bind(userId).first();
                 if (user && user.tg_topic_id) {
@@ -99,7 +94,6 @@ export default {
           let user = await env.db.prepare("SELECT * FROM users WHERE id = ?").bind(userId).first();
           let topicId = user ? user.tg_topic_id : null;
 
-          // 若配置了 TG，则去创建话题并转发
           if (config.tg_bot_token && config.tg_chat_id) {
               if (!user) {
                   const topicRes = await fetch(`https://api.telegram.org/bot${config.tg_bot_token}/createForumTopic`, {
@@ -112,7 +106,6 @@ export default {
                       await env.db.prepare("INSERT INTO users (id, tg_topic_id) VALUES (?, ?)").bind(userId, topicId).run();
                       await env.kv.put(`topic_${topicId}`, userId);
                   } else {
-                      // 降级：仅记录用户不建话题
                       await env.db.prepare("INSERT INTO users (id) VALUES (?)").bind(userId).run();
                   }
               }
@@ -145,23 +138,53 @@ export default {
           return new Response(JSON.stringify({ history: results }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
 
-        // TG Webhook
+        // ==========================================
+        // 核心修改部分：TG Webhook
+        // ==========================================
         if (url.pathname === "/tg/webhook" && method === "POST") {
           const update = await request.json();
           if (update.message && update.message.text) {
             const text = update.message.text;
             const threadId = update.message.message_thread_id;
-            let targetUserId = null, replyContent = text;
+            const replyTo = update.message.reply_to_message; // 获取被回复的原消息
+            
+            let targetUserId = null;
+            let replyContent = text;
 
+            // 模式 1：超级群组的自动话题 (Topic) 模式
             if (update.message.is_topic_message && threadId) {
               targetUserId = await env.kv.get(`topic_${threadId}`);
-            } else {
-              const match = text.match(/【客户ID:(.*?)】([\s\S]*)/);
-              if (match) { targetUserId = match[1].trim(); replyContent = match[2].trim(); }
+            } 
+            
+            // 模式 2：原生“右键回复”机器人的消息 (你截图里的需求 1)
+            else if (replyTo && replyTo.text && replyTo.text.includes("客户ID:")) {
+              const idMatch = replyTo.text.match(/客户ID:([a-zA-Z0-9_]+)/);
+              if (idMatch) {
+                targetUserId = idMatch[1];
+                replyContent = text; // 当前发的文字就是回复内容
+              }
+            } 
+            
+            // 模式 3：使用艾特标签格式 (你截图里的需求 2)
+            else {
+              // 尝试匹配 @ID:u_xxxx 内容
+              const matchAt = text.match(/^@ID:([a-zA-Z0-9_]+)\s+([\s\S]*)/);
+              // 尝试匹配 【客户ID:u_xxxx】 内容 (保留之前的兼容性)
+              const matchBracket = text.match(/^【客户ID:([a-zA-Z0-9_]+)】([\s\S]*)/);
+
+              if (matchAt) {
+                targetUserId = matchAt[1].trim();
+                replyContent = matchAt[2].trim();
+              } else if (matchBracket) {
+                targetUserId = matchBracket[1].trim();
+                replyContent = matchBracket[2].trim();
+              }
             }
 
+            // 如果成功匹配到了目标用户，写入数据库，等待客户轮询拉取
             if (targetUserId && replyContent) {
-              await env.db.prepare("INSERT INTO messages (user_id, sender, content) VALUES (?, 'agent', ?)").bind(targetUserId, replyContent).run();
+              await env.db.prepare("INSERT INTO messages (user_id, sender, content) VALUES (?, 'agent', ?)")
+                .bind(targetUserId, replyContent).run();
             }
           }
           return new Response("OK", { status: 200 });
@@ -173,7 +196,6 @@ export default {
       }
     }
 
-    // 非 API 请求，托管静态资源 (admin.html, widget.js 等)
     return env.ASSETS.fetch(request);
   }
 };

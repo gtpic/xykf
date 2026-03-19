@@ -37,11 +37,18 @@ export default {
           if (!(await checkAuth(request))) return new Response("Unauthorized", { status: 401, headers: corsHeaders });
 
           if (url.pathname === "/api/admin/config" && method === "GET") {
-            return new Response(JSON.stringify({ tg_bot_token: config.tg_bot_token, tg_chat_id: config.tg_chat_id }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+            const safeConfig = { ...config };
+            delete safeConfig.admin_password;
+            return new Response(JSON.stringify(safeConfig), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
           }
 
           if (url.pathname === "/api/admin/update-config" && method === "POST") {
-            const { username, password, botToken, chatId } = await request.json();
+            const reqData = await request.json();
+            const { username, password, botToken, chatId, agentIcon, userIcon, autoReply, quickReply } = reqData;
+            if (agentIcon !== undefined) await env.db.prepare("UPDATE config SET value = ? WHERE key = 'agent_icon'").bind(agentIcon).run();
+            if (userIcon !== undefined) await env.db.prepare("UPDATE config SET value = ? WHERE key = 'user_icon'").bind(userIcon).run();
+            if (autoReply !== undefined) await env.db.prepare("UPDATE config SET value = ? WHERE key = 'auto_reply'").bind(autoReply).run();
+            if (quickReply !== undefined) await env.db.prepare("UPDATE config SET value = ? WHERE key = 'quick_reply'").bind(quickReply).run();
             if (username) await env.db.prepare("UPDATE config SET value = ? WHERE key = 'admin_username'").bind(username).run();
             if (password) await env.db.prepare("UPDATE config SET value = ? WHERE key = 'admin_password'").bind(password).run();
             if (botToken !== undefined) await env.db.prepare("UPDATE config SET value = ? WHERE key = 'tg_bot_token'").bind(botToken).run();
@@ -79,9 +86,24 @@ export default {
             }
             return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
           }
+          if (url.pathname === "/api/admin/export-messages" && method === "GET") {
+            const { results } = await env.db.prepare("SELECT * FROM messages ORDER BY created_at ASC").all();
+            return new Response(JSON.stringify(results), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+          }
+          if (url.pathname === "/api/admin/import-config" && method === "POST") {
+            const imported = await request.json();
+            for (const [key, value] of Object.entries(imported)) {
+                if(key !== 'admin_username' && key !== 'admin_password') {
+                    await env.db.prepare("UPDATE config SET value = ? WHERE key = ?").bind(String(value), key).run();
+                }
+            }
+            return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+          }
         }
+          
 
         /* ================= Customer API ================= */
+        if (url.pathname === "/api/customer/config" && method === "GET") { return new Response(JSON.stringify({ agent_icon: config.agent_icon, user_icon: config.user_icon }), { headers: { ...corsHeaders, "Content-Type": "application/json" } }); }
         if (url.pathname === "/api/customer/send" && method === "POST") {
           let { userId, content } = await request.json();
           let topicId = null;
@@ -122,6 +144,15 @@ export default {
           }
 
           await env.db.prepare("INSERT INTO messages (user_id, sender, content) VALUES (?, 'user', ?)").bind(userId, content).run();
+          if (isNewUser && config.auto_reply) {
+              await env.db.prepare("INSERT INTO messages (user_id, sender, content) VALUES (?, 'agent', ?)").bind(userId, config.auto_reply).run();
+              if (config.tg_bot_token && config.tg_chat_id && topicId) {
+                  await fetch(`https://api.telegram.org/bot${config.tg_bot_token}/sendMessage`, {
+                      method: "POST", headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ chat_id: config.tg_chat_id, message_thread_id: topicId, text: `[系统自动回复]:\n${config.auto_reply}` })
+                  });
+              }
+          }
           
           // 返回生成的 userId 给前端保存
           return new Response(JSON.stringify({ success: true, userId: userId }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });

@@ -1,16 +1,10 @@
 (function() {
-    // 核心黑科技：自动获取当前引入的脚本域名作为 API_BASE
     const scriptTag = document.currentScript;
     const API_BASE = scriptTag ? new URL(scriptTag.src).origin : ""; 
 
-    // 生成或获取固定的客户 ID
+    // 读取可能已存在的数字 ID（如果是第一次来，则是 null）
     let userId = localStorage.getItem("cs_user_id");
-    if (!userId) {
-        userId = 'u_' + Math.random().toString(36).substring(2, 9);
-        localStorage.setItem("cs_user_id", userId);
-    }
 
-    // 注入 CSS 样式
     const style = document.createElement('style');
     style.innerHTML = `
         #cs-widget { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
@@ -30,7 +24,6 @@
     `;
     document.head.appendChild(style);
 
-    // 注入 HTML 结构
     const widgetHtml = `
         <div id="cs-panel">
             <div id="cs-header"><span>💬 在线客服</span><span id="cs-close">&times;</span></div>
@@ -47,7 +40,6 @@
     container.innerHTML = widgetHtml;
     document.body.appendChild(container);
 
-    // 绑定交互逻辑
     const panel = document.getElementById("cs-panel");
     const toggle = document.getElementById("cs-toggle");
     const close = document.getElementById("cs-close");
@@ -67,7 +59,7 @@
     }
 
     async function loadHistory() {
-        if (historyLoaded) return;
+        if (historyLoaded || !userId) return; // 如果还没有 ID，说明是新访客，不需要拉历史记录
         try {
             const res = await fetch(`${API_BASE}/api/customer/history?userId=${userId}`);
             const data = await res.json();
@@ -83,16 +75,17 @@
         if (isPolling) return;
         isPolling = true;
         while (isPolling) {
-            try {
-                const res = await fetch(`${API_BASE}/api/customer/get-reply?userId=${userId}`);
-                if(res.ok) {
-                    const data = await res.json();
-                    if (data.replies && data.replies.length > 0) {
-                        data.replies.forEach(msg => appendMsg(msg.content, 'agent'));
+            if (userId) { // 只有获取到了数字 ID 后才开始轮询新消息
+                try {
+                    const res = await fetch(`${API_BASE}/api/customer/get-reply?userId=${userId}`);
+                    if(res.ok) {
+                        const data = await res.json();
+                        if (data.replies && data.replies.length > 0) {
+                            data.replies.forEach(msg => appendMsg(msg.content, 'agent'));
+                        }
                     }
-                }
-            } catch (e) {}
-            // 等待 3 秒再次拉取
+                } catch (e) {}
+            }
             await new Promise(r => setTimeout(r, 3000));
         }
     }
@@ -106,10 +99,17 @@
         appendMsg(text, 'user');
         input.value = '';
         try {
-            await fetch(`${API_BASE}/api/customer/send`, {
+            const res = await fetch(`${API_BASE}/api/customer/send`, {
                 method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ userId, content: text })
+                body: JSON.stringify({ userId: userId, content: text })
             });
+            const data = await res.json();
+            
+            // 如果是发出的第一条消息，后端会分配一个自增数字 ID 返回
+            if (data.success && data.userId && !userId) {
+                userId = data.userId;
+                localStorage.setItem("cs_user_id", userId);
+            }
         } catch (e) { console.error("发送失败", e); }
     }
 

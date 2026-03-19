@@ -1,10 +1,12 @@
 (function() {
     const scriptTag = document.currentScript;
     const API_BASE = scriptTag ? new URL(scriptTag.src).origin : ""; 
-
-    // 读取可能已存在的数字 ID（如果是第一次来，则是 null）
+    // 读取本地 ID，并严格校验只能是纯数字。如果被篡改或不是纯数字，则作废
     let userId = localStorage.getItem("cs_user_id");
-
+    if (userId && !/^\d+$/.test(userId)) {
+        userId = null;
+        localStorage.removeItem("cs_user_id");
+    }
     const style = document.createElement('style');
     style.innerHTML = `
         #cs-widget { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }

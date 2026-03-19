@@ -287,6 +287,10 @@
         const data = await apiFetch("/api/admin/config");
         document.getElementById('set-tg-token').value = data.tg_bot_token || "";
         document.getElementById('set-tg-chatid').value = data.tg_chat_id || "";
+        document.getElementById('set-agent-icon').value = data.agent_icon || "";
+        document.getElementById('set-user-icon').value = data.user_icon || "";
+        document.getElementById('set-auto-reply').value = data.auto_reply || "";
+        document.getElementById('set-quick-reply').value = data.quick_reply || "";
     }
     
     function closeSettings() { 
@@ -302,14 +306,43 @@
         document.getElementById(tabId).classList.add('active');
         btn.classList.add('active');
     }
-    
+    async function exportSettings() {
+        const data = await apiFetch("/api/admin/config");
+        const blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); a.download = 'kf_settings.json'; a.click();
+    }
+
+    async function exportChatHistory() {
+        const data = await apiFetch("/api/admin/export-messages");
+        const blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); a.download = 'kf_messages.json'; a.click();
+    }
+
+    async function importSettings() {
+        const val = document.getElementById('import-settings').value;
+        if (!val) return alert("请先粘贴 JSON 内容");
+        try {
+            await apiFetch("/api/admin/import-config", { method: "POST", body: JSON.stringify(JSON.parse(val)) });
+            alert("导入成功！");
+            location.reload();
+        } catch(e) { alert("JSON 格式错误或导入失败"); }
+    }
     async function updateSettings() {
         const u = document.getElementById('set-username').value;
         const p = document.getElementById('set-password').value;
         const bt = document.getElementById('set-tg-token').value;
         const ci = document.getElementById('set-tg-chatid').value;
         
-        const payload = { botToken: bt, chatId: ci };
+        const payload = { 
+            botToken: bt, 
+            chatId: ci,
+            agentIcon: document.getElementById('set-agent-icon').value,
+            userIcon: document.getElementById('set-user-icon').value,
+            autoReply: document.getElementById('set-auto-reply').value,
+            quickReply: document.getElementById('set-quick-reply').value
+        };
         if (u) payload.username = u;
         if (p) payload.password = p;
 

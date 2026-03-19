@@ -173,7 +173,7 @@ export default {
       }
     }
 
-    // 如果不是 API 请求，交给 Pages 托管静态资源 (admin.html, widget.html)
+    // 非 API 请求，托管静态资源 (admin.html, widget.js 等)
     return env.ASSETS.fetch(request);
   }
 };

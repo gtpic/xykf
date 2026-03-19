@@ -1,7 +1,6 @@
 (function() {
     const scriptTag = document.currentScript;
     const API_BASE = scriptTag ? new URL(scriptTag.src).origin : ""; 
-    // 读取本地 ID，并严格校验只能是纯数字。如果被篡改或不是纯数字，则作废
     let userId = localStorage.getItem("cs_user_id");
     if (userId && !/^\d+$/.test(userId)) {
         userId = null;

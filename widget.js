@@ -73,7 +73,7 @@
         
         chat.appendChild(row);
         chat.scrollTop = chat.scrollHeight;
-    }}
+    }
 
     async function loadHistory() {
         if (historyLoaded || !userId) return; // 如果还没有 ID，说明是新访客，不需要拉历史记录

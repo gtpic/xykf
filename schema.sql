@@ -15,12 +15,14 @@ CREATE TABLE IF NOT EXISTS messages (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- 系统配置表（存储后台账号密码）
+-- 系统配置表（存储账号密码和TG配置）
 CREATE TABLE IF NOT EXISTS config (
     key TEXT PRIMARY KEY,
     value TEXT
 );
 
--- 初始化默认管理员账号密码 (admin / 123456)
+-- 插入默认配置
 INSERT OR IGNORE INTO config (key, value) VALUES ('admin_username', 'admin');
 INSERT OR IGNORE INTO config (key, value) VALUES ('admin_password', '123456');
+INSERT OR IGNORE INTO config (key, value) VALUES ('tg_bot_token', '');
+INSERT OR IGNORE INTO config (key, value) VALUES ('tg_chat_id', '');

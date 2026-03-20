@@ -1,4 +1,5 @@
 (function() {
+    // 1. 基础设置与 ID 获取 (保持与原版逻辑一致)
     const scriptTag = document.currentScript;
     const API_BASE = scriptTag ? new URL(scriptTag.src).origin : ""; 
     let userId = localStorage.getItem("cs_user_id");
@@ -6,40 +7,98 @@
         userId = null;
         localStorage.removeItem("cs_user_id");
     }
+
+    // 2. 注入精美的现代风格 CSS
     const style = document.createElement('style');
     style.innerHTML = `
-        #cs-widget { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        #cs-toggle { background: #007bff; color: white; border: none; border-radius: 50%; width: 56px; height: 56px; font-size: 24px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; justify-content: center; align-items: center; transition: transform 0.2s; }
-        #cs-toggle:hover { transform: scale(1.05); }
-        #cs-panel { display: none; width: 340px; height: 500px; background: white; border-radius: 12px; box-shadow: 0 5px 25px rgba(0,0,0,0.2); flex-direction: column; overflow: hidden; margin-bottom: 15px; border: 1px solid #eee; }
-        #cs-header { background: #007bff; color: white; padding: 16px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
-        #cs-close { cursor: pointer; font-size: 22px; line-height: 1; }
-        #cs-chat { flex: 1; padding: 16px; overflow-y: auto; background: #f9f9f9; display: flex; flex-direction: column; gap: 12px; }
-        .cs-msg-row { display: flex; align-items: flex-end; gap: 8px; margin-bottom: 5px; }
+        /* 容器与全局字体 */
+        #cs-widget { position: fixed; bottom: 24px; right: 24px; z-index: 9999; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        
+        /* 悬浮按钮 - 渐变色、阴影与悬浮放大效果 */
+        #cs-toggle { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); width: 64px; height: 64px; border-radius: 32px; border: none; cursor: pointer; box-shadow: 0 8px 24px rgba(118, 75, 162, 0.4); display: flex; align-items: center; justify-content: center; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); position: relative; }
+        #cs-toggle:hover { transform: translateY(-4px) scale(1.05); box-shadow: 0 14px 28px rgba(118, 75, 162, 0.5); }
+        #cs-toggle svg { width: 32px; height: 32px; fill: white; transition: transform 0.3s; }
+        
+        /* 未读消息红点 */
+        #cs-unread { display: none; position: absolute; top: -2px; right: -2px; background: #ff3b30; color: white; font-size: 12px; font-weight: bold; padding: 0 6px; min-width: 10px; height: 22px; line-height: 20px; border-radius: 11px; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        
+        /* 聊天面板主窗体 - 毛玻璃边框与圆角 */
+        #cs-panel { display: none; width: 360px; height: 580px; background: #ffffff; border-radius: 20px; box-shadow: 0 15px 40px rgba(0,0,0,0.12); flex-direction: column; overflow: hidden; margin-bottom: 20px; border: 1px solid rgba(0,0,0,0.05); opacity: 0; transform: translateY(20px); transition: opacity 0.3s ease, transform 0.3s ease; }
+        
+        /* 面板头部 - 渐变色 */
+        #cs-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; }
+        #cs-header-info { display: flex; flex-direction: column; }
+        #cs-header-title { font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px;}
+        #cs-header-title svg { width: 18px; height: 18px; fill: white; }
+        #cs-id-display { font-size: 12px; opacity: 0.8; margin-top: 4px; font-weight: 400; }
+        
+        /* 关闭按钮 */
+        #cs-close { cursor: pointer; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.2); border-radius: 50%; transition: background 0.2s; }
+        #cs-close:hover { background: rgba(255,255,255,0.3); }
+        #cs-close svg { width: 14px; height: 14px; fill: white; }
+        
+        /* 聊天内容区 */
+        #cs-chat { flex: 1; padding: 20px; overflow-y: auto; background: #f8f9fa; display: flex; flex-direction: column; gap: 16px; }
+        #cs-chat::-webkit-scrollbar { width: 6px; }
+        #cs-chat::-webkit-scrollbar-track { background: transparent; }
+        #cs-chat::-webkit-scrollbar-thumb { background: #dcdcdc; border-radius: 3px; }
+        
+        /* 消息行与头像 */
+        .cs-msg-row { display: flex; align-items: flex-end; gap: 10px; animation: fadeIn 0.3s ease; }
         .cs-msg-row.user { flex-direction: row-reverse; }
-        .cs-avatar { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; background: #e5e5ea; border: 1px solid #ddd; object-fit: cover; }
-        .cs-msg { max-width: 75%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.5; word-wrap: break-word; }
-        .cs-msg.user { background: #95ec69; color: black; border-radius: 4px; }
-        .cs-msg.agent { background: white; color: black; border-radius: 4px; border: 1px solid #eee; }
-        #cs-input-area { display: flex; padding: 12px; border-top: 1px solid #eee; background: white; align-items: center; }
-        #cs-input { flex: 1; padding: 10px 15px; border: 1px solid #ddd; border-radius: 20px; outline: none; font-size: 14px; }
-        #cs-input:focus { border-color: #007bff; }
-        #cs-send { background: none; border: none; color: #007bff; font-weight: bold; margin-left: 10px; cursor: pointer; font-size: 14px; padding: 5px 10px; }
+        .cs-avatar { width: 36px; height: 36px; border-radius: 12px; flex-shrink: 0; background: white; object-fit: cover; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        
+        /* 聊天气泡 */
+        .cs-msg { max-width: 72%; padding: 12px 16px; font-size: 14px; line-height: 1.5; word-wrap: break-word; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
+        .cs-msg.agent { background: white; color: #333; border-radius: 16px 16px 16px 4px; border: 1px solid #f0f0f0; }
+        .cs-msg.user { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 16px 16px 4px 16px; }
+        
+        /* 输入区 */
+        #cs-input-area { padding: 16px; background: white; border-top: 1px solid #f0f0f0; display: flex; gap: 12px; align-items: center; }
+        #cs-input { flex: 1; padding: 12px 16px; border: 1px solid #e4e4e4; border-radius: 24px; outline: none; font-size: 14px; background: #f8f9fa; transition: all 0.3s; }
+        #cs-input:focus { border-color: #764ba2; background: white; box-shadow: 0 0 0 3px rgba(118, 75, 162, 0.1); }
+        
+        /* 发送按钮 */
+        #cs-send { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; width: 42px; height: 42px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(118, 75, 162, 0.3); transition: transform 0.2s; flex-shrink: 0; }
+        #cs-send:hover { transform: scale(1.1); }
+        #cs-send svg { width: 18px; height: 18px; fill: white; transform: translateX(-1px); } /* 让纸飞机视觉居中 */
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* 移动端全屏适配 */
+        @media (max-width: 480px) {
+            #cs-panel { width: 100%; height: 100vh; height: 100dvh; bottom: 0; right: 0; border-radius: 0; margin-bottom: 0; position: fixed; }
+            #cs-toggle { bottom: 20px; right: 20px; }
+        }
     `;
     document.head.appendChild(style);
 
+    // 3. 构建 HTML 结构 (使用 SVG 矢量图标)
     const widgetHtml = `
         <div id="cs-panel">
-            <div id="cs-header"><span>💬 在线客服<span id="cs-id-display" style="font-size:12px; font-weight:normal; margin-left:8px;"></span></span><span id="cs-close">&times;</span></div>
+            <div id="cs-header">
+                <div id="cs-header-info">
+                    <div id="cs-header-title">
+                        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12c0 1.54.36 2.98.97 4.29L1 23l6.71-1.97C9.02 21.64 10.46 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-1.22 0-2.39-.24-3.46-.68l-.8-.33-3.61 1.06.96-3.52-.36-.78C3.54 14.53 3 13.31 3 12c0-4.96 4.04-9 9-9s9 4.04 9 9-4.04 9-9 9z"/></svg>
+                        在线客服
+                    </div>
+                    <div id="cs-id-display">为您提供专属服务</div>
+                </div>
+                <div id="cs-close">
+                    <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                </div>
+            </div>
             <div id="cs-chat"></div>
             <div id="cs-input-area">
                 <input type="text" id="cs-input" placeholder="输入你想咨询的问题...">
-                <button id="cs-send">发送</button>
+                <button id="cs-send">
+                    <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                </button>
             </div>
         </div>
-        <button id="cs-toggle" style="position:relative;">
-            💬
-            <span id="cs-unread" style="display:none; position:absolute; top:-2px; right:-2px; background:#ff4d4f; color:white; font-size:12px; font-weight:bold; padding:0 5px; height:18px; line-height:18px; border-radius:9px; box-shadow:0 2px 4px rgba(0,0,0,0.2);">0</span>
+        <button id="cs-toggle">
+            <svg viewBox="0 0 24 24" id="cs-toggle-icon"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg>
+            <span id="cs-unread">0</span>
         </button>
         <audio id="cs-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
     `;
@@ -48,6 +107,7 @@
     container.innerHTML = widgetHtml;
     document.body.appendChild(container);
 
+    // 4. 核心逻辑 (完全继承原代码，保证通信正常)
     const panel = document.getElementById("cs-panel");
     const toggle = document.getElementById("cs-toggle");
     const close = document.getElementById("cs-close");
@@ -57,17 +117,20 @@
     const idDisplay = document.getElementById("cs-id-display");
     const unreadBadge = document.getElementById("cs-unread");
     const notifySound = document.getElementById("cs-sound");
+    
     let unreadCount = 0;
     function updateIdDisplay() {
         if (idDisplay && userId) {
-            idDisplay.innerText = `[客户ID:${userId}]`;
+            idDisplay.innerText = `[客户ID: ${userId}] 专属服务中`;
         }
     }
-    updateIdDisplay(); // 页面加载时如果有历史 ID 就显示出来
+    updateIdDisplay();
+
     let isPolling = false;
     let historyLoaded = false;
     let widgetConfig = { agent_icon: '', user_icon: '' };
     fetch(`${API_BASE}/api/customer/config`).then(r => r.json()).then(data => widgetConfig = data).catch(e => {});
+
     function appendMsg(text, sender) {
         const row = document.createElement("div");
         row.className = `cs-msg-row ${sender}`;
@@ -80,6 +143,7 @@
         } else {
             avatar.src = widgetConfig.user_icon || `https://api.dicebear.com/7.x/adventurer/svg?seed=${seed}`;
         }
+        
         const msgDiv = document.createElement("div");
         msgDiv.className = `cs-msg ${sender}`;
         msgDiv.innerText = text;
@@ -92,7 +156,7 @@
     }
 
     async function loadHistory() {
-        if (historyLoaded || !userId) return; // 如果还没有 ID，说明是新访客，不需要拉历史记录
+        if (historyLoaded || !userId) return; 
         try {
             const res = await fetch(`${API_BASE}/api/customer/history?userId=${userId}`);
             const data = await res.json();
@@ -108,21 +172,18 @@
         if (isPolling) return;
         isPolling = true;
         while (isPolling) {
-            if (userId) { // 只有获取到了数字 ID 后才开始轮询新消息
+            if (userId) {
                 try {
                     const res = await fetch(`${API_BASE}/api/customer/get-reply?userId=${userId}`);
                     if(res.ok) {
                         const data = await res.json();
                         if (data.replies && data.replies.length > 0) {
                             data.replies.forEach(msg => appendMsg(msg.content, 'agent'));
-                            
-                            // 尝试播放提示音 (浏览器策略要求用户必须先在页面有过点击交互才能播放声音)
                             try { notifySound.play(); } catch(e) {}
                             
-                            // 如果聊天框当前是收起状态，则增加未读提示
                             if (panel.style.display !== 'flex') {
                                 unreadCount += data.replies.length;
-                                unreadBadge.innerText = '+' + unreadCount;
+                                unreadBadge.innerText = unreadCount > 99 ? '99+' : unreadCount;
                                 unreadBadge.style.display = 'block';
                             }
                         }
@@ -133,21 +194,30 @@
         }
     }
 
+    // 加入了一点动画延迟逻辑，让展开/收起更平滑
     toggle.onclick = () => { 
-        panel.style.display = 'flex'; toggle.style.display = 'none'; 
+        panel.style.display = 'flex'; 
+        setTimeout(() => { panel.style.opacity = '1'; panel.style.transform = 'translateY(0)'; }, 10);
+        toggle.style.transform = 'scale(0)'; 
+        setTimeout(() => { toggle.style.display = 'none'; toggle.style.transform = ''; }, 300);
+        
         unreadCount = 0; unreadBadge.style.display = 'none'; 
         loadHistory(); startPolling(); 
     };
     
     close.onclick = () => { 
-        panel.style.display = 'none'; toggle.style.display = 'flex'; 
-        // 关键点：去掉了 isPolling = false，这样即使关闭面板，也会在后台继续接收新消息
+        panel.style.opacity = '0'; panel.style.transform = 'translateY(20px)';
+        setTimeout(() => { panel.style.display = 'none'; }, 300);
+        
+        toggle.style.display = 'flex'; 
+        toggle.style.transform = 'scale(0)';
+        setTimeout(() => { toggle.style.transform = 'scale(1)'; }, 10);
     };
 
-    // 关键点：如果老访客重新打开网页（存在历史ID），主动在后台启动轮询检测
     if (userId) {
         startPolling();
     }
+
     async function sendMessage() {
         const text = input.value.trim();
         if (!text) return;
@@ -160,7 +230,6 @@
             });
             const data = await res.json();
             
-            // 如果是发出的第一条消息，后端会分配一个自增数字 ID 返回
             if (data.success && data.userId && !userId) {
                 userId = data.userId;
                 localStorage.setItem("cs_user_id", userId);

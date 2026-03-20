@@ -24,7 +24,7 @@
        /* 聊天面板主窗体 - 毛玻璃边框与圆角 */
         #cs-panel { position: absolute; bottom: 18px; right: 0; display: none; width: 320px; height: 580px; background: #ffffff; border-radius: 20px; box-shadow: 0 15px 40px rgba(0,0,0,0.12); flex-direction: column; overflow: hidden; border: 1px solid rgba(0,0,0,0.05); opacity: 0; transform: translateY(20px); transition: opacity 0.3s ease, transform 0.3s ease; }
         /* 面板头部 - 渐变色 */
-        #cs-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px 20px; display: flex; justify-content: space-between; align-items: center; }
+        #cs-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; }
         #cs-header-info { display: flex; flex-direction: column; }
         #cs-header-title { font-size: 16px; font-weight: 600; display: flex; align-items: center; }
         #cs-header-title svg { width: 18px; height: 18px; fill: white; margin-right: 8px; }

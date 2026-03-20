@@ -65,10 +65,17 @@
         
         /* 移动端按屏幕宽度等比缩小适配 */
         @media (max-width: 480px) { #cs-widget { transform-origin: bottom right; transform: scale(0.9); } }
-        @media (max-width: 400px) { #cs-widget { transform-origin: bottom right; transform: scale(0.8); } }
+        @media (max-width: 400px) { 
+            #cs-widget { transform-origin: bottom right; transform: scale(0.8); } 
+            .cs-msg, #cs-input { font-size: 16px; } 
+            #cs-chat { gap: 20px; } 
+        }
         @media (max-width: 350px) { 
-            #cs-widget { transform-origin: bottom right; transform: scale(0.85); } 
-            #cs-panel { height: 430px; right: calc((50vw - 24px) / 0.85 - 180px); } 
+            #cs-widget { transform-origin: bottom right; transform: scale(0.7); } 
+            #cs-panel { height: 430px; right: calc((50vw - 24px) / 0.7 - 180px); } 
+            .cs-msg, #cs-input { font-size: 18px; } 
+            #cs-chat { gap: 24px; } 
+            .cs-msg { padding: 14px 20px; } 
         }
     `;
     document.head.appendChild(style);

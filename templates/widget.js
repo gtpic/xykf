@@ -8,7 +8,6 @@
         localStorage.removeItem("cs_user_id");
     }
 
-    // 2. 注入精美的现代风格 CSS
     const style = document.createElement('style');
     style.innerHTML = `
        /* 容器与全局字体 */

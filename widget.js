@@ -37,7 +37,11 @@
                 <button id="cs-send">发送</button>
             </div>
         </div>
-        <button id="cs-toggle">💬</button>
+        <button id="cs-toggle" style="position:relative;">
+            💬
+            <span id="cs-unread" style="display:none; position:absolute; top:-2px; right:-2px; background:#ff4d4f; color:white; font-size:12px; font-weight:bold; padding:0 5px; height:18px; line-height:18px; border-radius:9px; box-shadow:0 2px 4px rgba(0,0,0,0.2);">0</span>
+        </button>
+        <audio id="cs-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
     `;
     const container = document.createElement('div');
     container.id = 'cs-widget';
@@ -51,6 +55,9 @@
     const input = document.getElementById("cs-input");
     const sendBtn = document.getElementById("cs-send");
     const idDisplay = document.getElementById("cs-id-display");
+    const unreadBadge = document.getElementById("cs-unread");
+    const notifySound = document.getElementById("cs-sound");
+    let unreadCount = 0;
     function updateIdDisplay() {
         if (idDisplay && userId) {
             idDisplay.innerText = `[客户ID:${userId}]`;
@@ -108,6 +115,16 @@
                         const data = await res.json();
                         if (data.replies && data.replies.length > 0) {
                             data.replies.forEach(msg => appendMsg(msg.content, 'agent'));
+                            
+                            // 尝试播放提示音 (浏览器策略要求用户必须先在页面有过点击交互才能播放声音)
+                            try { notifySound.play(); } catch(e) {}
+                            
+                            // 如果聊天框当前是收起状态，则增加未读提示
+                            if (panel.style.display !== 'flex') {
+                                unreadCount += data.replies.length;
+                                unreadBadge.innerText = '+' + unreadCount;
+                                unreadBadge.style.display = 'block';
+                            }
                         }
                     }
                 } catch (e) {}
@@ -116,7 +133,11 @@
         }
     }
 
-    toggle.onclick = () => { panel.style.display = 'flex'; toggle.style.display = 'none'; loadHistory(); startPolling(); };
+    toggle.onclick = () => { 
+        panel.style.display = 'flex'; toggle.style.display = 'none'; 
+        unreadCount = 0; unreadBadge.style.display = 'none'; // 清空未读数并隐藏红点
+        loadHistory(); startPolling(); 
+    };
     close.onclick = () => { panel.style.display = 'none'; toggle.style.display = 'flex'; isPolling = false; };
 
     async function sendMessage() {

@@ -65,11 +65,10 @@
         
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* 移动端全屏适配 */
-        @media (max-width: 480px) {
-            #cs-panel { width: 100%; height: 100vh; height: 100dvh; bottom: 0; right: 0; border-radius: 0; margin-bottom: 0; position: fixed; }
-            #cs-toggle { bottom: 20px; right: 20px; }
-        }
+        /* 移动端按屏幕宽度等比缩小适配 */
+        @media (max-width: 480px) { #cs-widget { transform-origin: bottom right; transform: scale(0.9); } }
+        @media (max-width: 400px) { #cs-widget { transform-origin: bottom right; transform: scale(0.8); } }
+        @media (max-width: 350px) { #cs-widget { transform-origin: bottom right; transform: scale(0.7); } }
     `;
     document.head.appendChild(style);
 

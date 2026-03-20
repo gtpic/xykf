@@ -44,13 +44,13 @@
         /* 消息行与头像 */
         .cs-msg-row { display: flex; align-items: flex-end; margin-bottom: 10px; animation: fadeIn 0.3s ease; }
         .cs-msg-row:last-child { margin-bottom: 0; }
-        .cs-msg-row .cs-avatar { margin-right: 10px; }
+        .cs-msg-row .cs-avatar { margin-right: 5px; }
         .cs-msg-row.user { flex-direction: row-reverse; }
-        .cs-msg-row.user .cs-avatar { margin-right: 0; margin-left: 10px; }
+        .cs-msg-row.user .cs-avatar { margin-right: 0; margin-left: 5px; }
         .cs-avatar { width: 36px; height: 36px; border-radius: 12px; flex-shrink: 0; background: white; object-fit: cover; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         
         /* 聊天气泡 */
-        .cs-msg { max-width: 72%; padding: 12px 16px; font-size: 14px; line-height: 1.5; word-wrap: break-word; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
+        .cs-msg { max-width: 72%; padding: 8px 10px; font-size: 14px; line-height: 1.5; word-wrap: break-word; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
         .cs-msg.agent { background: white; color: #333; border-radius: 16px 16px 16px 4px; border: 1px solid #f0f0f0; }
         .cs-msg.user { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 16px 16px 4px 16px; }
         

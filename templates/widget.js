@@ -11,8 +11,9 @@
     // 2. 注入精美的现代风格 CSS
     const style = document.createElement('style');
     style.innerHTML = `
-        /* 容器与全局字体 */
+       /* 容器与全局字体 */
         #cs-widget { position: fixed; bottom: 24px; right: 24px; z-index: 9999; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; flex-direction: column; align-items: flex-end; }
+        #cs-widget * { outline: none !important; -webkit-tap-highlight-color: transparent !important; }
         /* 悬浮按钮 - 渐变色、阴影与悬浮放大效果 */
         #cs-toggle { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); width: 64px; height: 64px; border-radius: 32px; border: none; cursor: pointer; box-shadow: 0 8px 24px rgba(118, 75, 162, 0.4); display: flex; align-items: center; justify-content: center; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); position: relative; }
         #cs-toggle:hover { transform: translateY(-4px) scale(1.05); box-shadow: 0 14px 28px rgba(118, 75, 162, 0.5); }

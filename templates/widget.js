@@ -42,7 +42,7 @@
         #cs-chat::-webkit-scrollbar-thumb { background: #dcdcdc; border-radius: 3px; }
         
         /* 消息行与头像 */
-        .cs-msg-row { display: flex; align-items: flex-end; margin-bottom: 16px; animation: fadeIn 0.3s ease; }
+        .cs-msg-row { display: flex; align-items: flex-end; margin-bottom: 10px; animation: fadeIn 0.3s ease; }
         .cs-msg-row:last-child { margin-bottom: 0; }
         .cs-msg-row .cs-avatar { margin-right: 10px; }
         .cs-msg-row.user { flex-direction: row-reverse; }

@@ -36,13 +36,14 @@
         #cs-close svg { width: 14px; height: 14px; fill: white; }
         
         /* 聊天内容区 */
-        #cs-chat { flex: 1; padding: 20px; overflow-y: auto; background: #f8f9fa; display: flex; flex-direction: column; gap: 16px; }
+        #cs-chat { flex: 1; padding: 20px; overflow-y: auto; background: #f8f9fa; display: flex; flex-direction: column; }
         #cs-chat::-webkit-scrollbar { width: 6px; }
         #cs-chat::-webkit-scrollbar-track { background: transparent; }
         #cs-chat::-webkit-scrollbar-thumb { background: #dcdcdc; border-radius: 3px; }
         
         /* 消息行与头像 */
-        .cs-msg-row { display: flex; align-items: flex-end; gap: 10px; animation: fadeIn 0.3s ease; }
+        .cs-msg-row { display: flex; align-items: flex-end; gap: 10px; margin-bottom: 16px; animation: fadeIn 0.3s ease; }
+        .cs-msg-row:last-child { margin-bottom: 0; }
         .cs-msg-row.user { flex-direction: row-reverse; }
         .cs-avatar { width: 36px; height: 36px; border-radius: 12px; flex-shrink: 0; background: white; object-fit: cover; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         

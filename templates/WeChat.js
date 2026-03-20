@@ -141,7 +141,6 @@
     
     close.onclick = () => { 
         panel.style.display = 'none'; toggle.style.display = 'flex'; 
-        // 关键点：去掉了 isPolling = false，这样即使关闭面板，也会在后台继续接收新消息
     };
 
     // 关键点：如果老访客重新打开网页（存在历史ID），主动在后台启动轮询检测

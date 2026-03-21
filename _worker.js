@@ -77,14 +77,35 @@ export default {
           }
 
           if (url.pathname === "/api/admin/reply" && method === "POST") {
-            const { userId, content } = await request.json();
+            let { userId, content } = await request.json();
+            let tgText = `[网页后台回复]:\n${content}`;
+
+            // 新增逻辑：检查后台发送的是否为图片
+            if (content.startsWith("data:image/")) {
+                const base64Data = content.split(',')[1];
+                const mimeType = content.split(';')[0].split(':')[1];
+                const binaryStr = atob(base64Data);
+                const bytes = new Uint8Array(binaryStr.length);
+                for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+                
+                // 检查是否配置了 R2 并上传
+                if (config.img_storage === 'r2' && env.r2) {
+                    const fileName = `img_${Date.now()}_agent.png`;
+                    await env.r2.put(fileName, bytes, { httpMetadata: { contentType: mimeType } });
+                    const r2Domain = config.r2_domain ? config.r2_domain.replace(/\/$/, '') : '';
+                    content = `IMG:${r2Domain}/${fileName}`;
+                }
+                tgText = `[网页后台回复了一张图片]`; // 避免把长串Base64代码发给TG导致卡顿
+            }
+
             await env.db.prepare("INSERT INTO messages (user_id, sender, content) VALUES (?, 'agent', ?)").bind(userId, content).run();
+            
             if (config.tg_bot_token && config.tg_chat_id) {
                 const user = await env.db.prepare("SELECT tg_topic_id FROM users WHERE id = ?").bind(userId).first();
                 if (user && user.tg_topic_id) {
                     await fetch(`https://api.telegram.org/bot${config.tg_bot_token}/sendMessage`, {
                         method: "POST", headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ chat_id: config.tg_chat_id, message_thread_id: user.tg_topic_id, text: `[网页后台回复]:\n${content}` })
+                        body: JSON.stringify({ chat_id: config.tg_chat_id, message_thread_id: user.tg_topic_id, text: tgText })
                     });
                 }
             }

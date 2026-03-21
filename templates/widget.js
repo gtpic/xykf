@@ -165,7 +165,18 @@
         }
     }).catch(e => {});
 
-    function appendMsg(text, sender) {
+    let lastMsgTime = 0;
+    function appendMsg(text, sender, timeStr) {
+        const d = timeStr ? new Date(timeStr.replace(' ', 'T') + 'Z') : new Date();
+        const nowTime = d.getTime();
+        if (nowTime - lastMsgTime > 5 * 60 * 1000) { // 超过5分钟显示时间
+            const timeDiv = document.createElement("div");
+            timeDiv.style.cssText = "text-align:center; font-size:12px; color:#999; margin:8px 0 12px; width:100%; clear:both;";
+            timeDiv.innerText = d.toLocaleString('zh-CN', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' });
+            chat.appendChild(timeDiv);
+            lastMsgTime = nowTime;
+        }
+
         const row = document.createElement("div");
         row.className = `cs-msg-row ${sender}`;
         
@@ -196,7 +207,8 @@
             const data = await res.json();
             if (data.history && data.history.length > 0) {
                 chat.innerHTML = '';
-                data.history.forEach(msg => appendMsg(msg.content, msg.sender));
+                lastMsgTime = 0; // 清空时重置时间计算
+                data.history.forEach(msg => appendMsg(msg.content, msg.sender, msg.created_at));
             }
             historyLoaded = true;
         } catch (e) { console.error("加载历史失败", e); }
@@ -212,7 +224,7 @@
                     if(res.ok) {
                         const data = await res.json();
                         if (data.replies && data.replies.length > 0) {
-                            data.replies.forEach(msg => appendMsg(msg.content, 'agent'));
+                            data.replies.forEach(msg => appendMsg(msg.content, 'agent', msg.created_at));
                             try { notifySound.play(); } catch(e) {}
                             
                             if (panel.style.display !== 'flex') {

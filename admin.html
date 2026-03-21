@@ -318,7 +318,7 @@
             bubble.className = `msg ${m.sender}`;
             
             if (m.content.startsWith("data:image/")) {
-                bubble.innerHTML = `<img src="${m.content}" style="max-width: 200px; border-radius: 4px; cursor: pointer;" onclick="window.open('${m.content}')" />`;
+                bubble.innerHTML = `<img src="${m.content}" style="max-width: 200px; border-radius: 4px; cursor: pointer;" onclick="var w=window.open(''); w.document.write('<img src=&quot;${m.content}&quot; style=&quot;max-width:100%;&quot; />'); w.document.close();" />`;
                 bubble.style.background = "transparent";
                 bubble.style.padding = "0";
                 bubble.style.boxShadow = "none";

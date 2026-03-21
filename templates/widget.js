@@ -173,7 +173,7 @@
         avatar.className = "cs-avatar";
         const seed = sender === 'agent' ? 'kefu' : (userId || Math.random());
         if (sender === 'agent') {
-            avatar.src = widgetConfig.agent_icon || '${API_BASE}/files/kfyj.webp';
+            avatar.src = widgetConfig.agent_icon || `${API_BASE}/files/kfyj.webp`;
         } else {
             avatar.src = widgetConfig.user_icon || `${API_BASE}/files/khzb.webp?seed=${seed}`;
         }

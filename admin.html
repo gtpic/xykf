@@ -157,6 +157,19 @@
                     <label>Telegram 超级群聊 ID (可选)</label>
                     <input type="text" id="set-tg-chatid" placeholder="形如: -1001234567">
                 </div>
+                <h3 style="margin-top: 30px;">🖼️ 图片存储模式</h3>
+                <div class="input-group">
+                    <label>图片存储位置</label>
+                    <select id="set-img-storage" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="base64">D1 数据库 (默认, 存Base64)</option>
+                        <option value="tg">Telegram 图床 (免费无限, 推荐)</option>
+                        <option value="r2">Cloudflare R2 (需绑定env.R2变量)</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>R2 公开访问域名 (仅 R2 模式填写，带 https://)</label>
+                    <input type="text" id="set-r2-domain" placeholder="https://img.yourdomain.com">
+                </div>
                 </div> <div id="tab-function" class="tab-pane">
                 <h3>🎨 界面模板</h3>
                 <div class="input-group">
@@ -252,7 +265,7 @@
             div.className = `user-item ${u.id == activeUserId ? 'active' : ''}`;
             div.onclick = () => selectUser(u.id);
             let displayMsg = u.last_message || '无消息';
-            if (displayMsg.startsWith("data:image/")) displayMsg = "[图片]";
+            if (displayMsg.startsWith("data:image/") || displayMsg.startsWith("IMG:")) displayMsg = "[图片]";
             div.innerHTML = `<div class="user-id">客户 ${u.id}</div><div class="user-msg">${displayMsg}</div>`;
             listDiv.appendChild(div);
         });
@@ -317,8 +330,9 @@
             const bubble = document.createElement("div");
             bubble.className = `msg ${m.sender}`;
             
-            if (m.content.startsWith("data:image/")) {
-                bubble.innerHTML = `<img src="${m.content}" style="max-width: 200px; border-radius: 4px; cursor: pointer;" onclick="var w=window.open(''); w.document.write('<img src=&quot;${m.content}&quot; style=&quot;max-width:100%;&quot; />'); w.document.close();" />`;
+            if (m.content.startsWith("data:image/") || m.content.startsWith("IMG:")) {
+                const imgSrc = m.content.startsWith("IMG:") ? m.content.substring(4) : m.content;
+                bubble.innerHTML = `<img src="${imgSrc}" style="max-width: 200px; border-radius: 4px; cursor: pointer;" onclick="window.open('${imgSrc}')" />`;
                 bubble.style.background = "transparent";
                 bubble.style.padding = "0";
                 bubble.style.boxShadow = "none";
@@ -362,6 +376,8 @@
         const data = await apiFetch("/api/admin/config");
         document.getElementById('set-tg-token').value = data.tg_bot_token || "";
         document.getElementById('set-tg-chatid').value = data.tg_chat_id || "";
+        document.getElementById('set-img-storage').value = data.img_storage || "base64";
+        document.getElementById('set-r2-domain').value = data.r2_domain || "";
         document.getElementById('set-widget-theme').value = data.widget_theme || "widget";
         document.getElementById('set-agent-icon').value = data.agent_icon || "";
         document.getElementById('set-user-icon').value = data.user_icon || "";
@@ -415,6 +431,8 @@
         const payload = { 
             botToken: bt, 
             chatId: ci,
+            imgStorage: document.getElementById('set-img-storage').value,
+            r2Domain: document.getElementById('set-r2-domain').value,
             widgetTheme: document.getElementById('set-widget-theme').value,
             agentIcon: document.getElementById('set-agent-icon').value,
             userIcon: document.getElementById('set-user-icon').value,

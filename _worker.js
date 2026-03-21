@@ -103,8 +103,34 @@ export default {
             }
             return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
           }
-        }
-          
+          if (url.pathname === "/api/admin/delete-user" && method === "POST") {
+            const { userId } = await request.json();
+            
+            // 1. 获取用户的 TG Topic ID
+            const user = await env.db.prepare("SELECT tg_topic_id FROM users WHERE id = ?").bind(userId).first();
+            
+            // 2. 如果存在 Topic ID 且配置了 TG 机器人，则调用 TG API 删除话题
+            if (user && user.tg_topic_id && config.tg_bot_token && config.tg_chat_id) {
+                await fetch(`https://api.telegram.org/bot${config.tg_bot_token}/deleteForumTopic`, {
+                    method: "POST", 
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ 
+                        chat_id: config.tg_chat_id, 
+                        message_thread_id: user.tg_topic_id 
+                    })
+                }).catch(e => console.error("TG 删除失败:", e));
+                
+                // 清理 KV 缓存
+                await env.kv.delete(`topic_${user.tg_topic_id}`);
+            }
+
+            // 3. 从数据库中彻底删除该用户及其聊天记录
+            await env.db.prepare("DELETE FROM messages WHERE user_id = ?").bind(userId).run();
+            await env.db.prepare("DELETE FROM users WHERE id = ?").bind(userId).run();
+            
+            return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+          }
+        } 
 
         /* ================= Customer API ================= */
         if (url.pathname === "/api/customer/config" && method === "GET") { return new Response(JSON.stringify({ agent_icon: config.agent_icon, user_icon: config.user_icon, faq_list: config.faq_list }), { headers: { ...corsHeaders, "Content-Type": "application/json" } }); }

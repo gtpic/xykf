@@ -44,8 +44,9 @@ export default {
 
           if (url.pathname === "/api/admin/update-config" && method === "POST") {
             const reqData = await request.json();
-            const { username, password, botToken, chatId, agentIcon, userIcon, autoReply, quickReply, widgetTheme } = reqData;
+            const { username, password, botToken, chatId, agentIcon, userIcon, autoReply, quickReply, widgetTheme, faqList } = reqData;
             if (widgetTheme !== undefined) await env.db.prepare("INSERT OR REPLACE INTO config (key, value) VALUES ('widget_theme', ?)").bind(widgetTheme).run();
+            if (faqList !== undefined) await env.db.prepare("INSERT OR REPLACE INTO config (key, value) VALUES ('faq_list', ?)").bind(faqList).run();
             if (agentIcon !== undefined) await env.db.prepare("UPDATE config SET value = ? WHERE key = 'agent_icon'").bind(agentIcon).run();
             if (userIcon !== undefined) await env.db.prepare("UPDATE config SET value = ? WHERE key = 'user_icon'").bind(userIcon).run();
             if (autoReply !== undefined) await env.db.prepare("UPDATE config SET value = ? WHERE key = 'auto_reply'").bind(autoReply).run();
@@ -104,7 +105,7 @@ export default {
           
 
         /* ================= Customer API ================= */
-        if (url.pathname === "/api/customer/config" && method === "GET") { return new Response(JSON.stringify({ agent_icon: config.agent_icon, user_icon: config.user_icon }), { headers: { ...corsHeaders, "Content-Type": "application/json" } }); }
+        if (url.pathname === "/api/customer/config" && method === "GET") { return new Response(JSON.stringify({ agent_icon: config.agent_icon, user_icon: config.user_icon, faq_list: config.faq_list }), { headers: { ...corsHeaders, "Content-Type": "application/json" } }); }
         if (url.pathname === "/api/customer/send" && method === "POST") {
           let { userId, content } = await request.json();
           let topicId = null;
@@ -145,7 +146,27 @@ export default {
           }
 
           await env.db.prepare("INSERT INTO messages (user_id, sender, content) VALUES (?, 'user', ?)").bind(userId, content).run();
-          if (isNewUser && config.auto_reply) {
+          let faqAnswer = null;
+          if (config.faq_list) {
+              const lines = config.faq_list.split('\n');
+              for (const line of lines) {
+                  const parts = line.split('|');
+                  if (parts.length >= 2 && parts[0].trim() === content.trim()) {
+                      faqAnswer = parts.slice(1).join('|').trim();
+                      break;
+                  }
+              }
+          }
+
+          if (faqAnswer) {
+              await env.db.prepare("INSERT INTO messages (user_id, sender, content) VALUES (?, 'agent', ?)").bind(userId, faqAnswer).run();
+              if (config.tg_bot_token && config.tg_chat_id && topicId) {
+                  await fetch(`https://api.telegram.org/bot${config.tg_bot_token}/sendMessage`, {
+                      method: "POST", headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ chat_id: config.tg_chat_id, message_thread_id: topicId, text: `[快捷回复]:\n${faqAnswer}` })
+                  });
+              }
+          } else if (isNewUser && config.auto_reply) {
               await env.db.prepare("INSERT INTO messages (user_id, sender, content) VALUES (?, 'agent', ?)").bind(userId, config.auto_reply).run();
               if (config.tg_bot_token && config.tg_chat_id && topicId) {
                   await fetch(`https://api.telegram.org/bot${config.tg_bot_token}/sendMessage`, {

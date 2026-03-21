@@ -170,10 +170,12 @@
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
-            overflow: hidden;
+            position: relative; /* 改为相对定位以显示角标 */
             border: 1px solid #eee;
         }
-        .user-avatar img { width:100%; height:100%; object-fit: cover;}
+        .user-avatar img { width:100%; height:100%; object-fit: cover; border-radius: 4px; }
+        /* 新增：未读消息角标样式 */
+        .unread-badge { position: absolute; top: -6px; right: -6px; background-color: #ff3b30; color: white; font-size: 10px; padding: 1px 5px; border-radius: 10px; font-weight: bold; border: 1px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.2); z-index: 2;}
 
         .user-info {
             flex: 1;
@@ -493,6 +495,10 @@
     const API_BASE = ""; 
     let activeUserId = null;
     let pollInterval = null;
+    // 新增：未读消息与新消息提醒记录
+    let userLastMsgs = {}; 
+    let unreadCounts = {};
+    const notifySound = new Audio(`${API_BASE}/files/preview.mp3`); // 播放现有的提示音
     // 格式化时间
     function formatTime(timestamp) {
         const date = new Date(timestamp);
@@ -525,7 +531,10 @@
             document.getElementById('admin-container').classList.remove('hidden');
             apiFetch("/api/admin/config").then(d => adminConfig = d).catch(e=>{});
             loadUsers();
-            pollInterval = setInterval(pollCurrentChat, 3000);
+            pollInterval = setInterval(() => {
+                loadUsers(true); // 传入 true 表示后台定时刷新，检查新消息
+                pollCurrentChat();
+            }, 3000);
         }
     };
 
@@ -556,22 +565,54 @@
         }
     }
 
-    async function loadUsers() {
+    async function loadUsers(isPolling = false) {
         const data = await apiFetch("/api/admin/users");
         const listDiv = document.getElementById('user-list');
+        let hasNewMessage = false;
+
+        // 1. 判断新消息并计算未读数
+        data.users.forEach(u => {
+            if (!userLastMsgs[u.id]) {
+                userLastMsgs[u.id] = u.last_message; // 初始记录
+            } else if (userLastMsgs[u.id] !== u.last_message) {
+                userLastMsgs[u.id] = u.last_message; // 发现内容变化
+                hasNewMessage = true; 
+                if (u.id !== activeUserId) {
+                    unreadCounts[u.id] = (unreadCounts[u.id] || 0) + 1; // 如果不是当前正聊天的客户，+1
+                }
+            }
+        });
+
+        // 2. 播放提示音
+        if (hasNewMessage && isPolling) {
+            notifySound.play().catch(e => {}); // 防止浏览器策略拦截报错
+        }
+
+        // 3. 排序：未读消息越多的排在越前面
+        data.users.sort((a, b) => (unreadCounts[b.id] || 0) - (unreadCounts[a.id] || 0));
+        
+        // 记录当前的滚动条位置，防止列表刷新时闪动
+        const scrollPos = listDiv.scrollTop;
         listDiv.innerHTML = "";
+
+        // 4. 渲染列表
         data.users.forEach(u => {
             const div = document.createElement("div");
             div.className = `user-item ${u.id == activeUserId ? 'active' : ''}`;
             div.onclick = () => selectUser(u.id);
+            
             let displayMsg = u.last_message || '无消息';
             if (displayMsg.startsWith("data:image/") || displayMsg.startsWith("IMG:")) displayMsg = "[图片]";
             
             const userAvatarSrc = adminConfig.user_icon || `${API_BASE}/files/khzb.webp?seed=${u.id}`;
+            // 构造未读角标 DOM
+            const unreadBadge = unreadCounts[u.id] ? `<div class="unread-badge">+${unreadCounts[u.id]}</div>` : '';
 
-            // 注意：这里已经将 u.id.substring 改为了纯 u.id 以防纯数字格式报错崩溃
             div.innerHTML = `
-                <div class="user-avatar"><img src="${userAvatarSrc}" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%23ccc%22><path d=%22M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z%22/></svg>'"></div>
+                <div class="user-avatar">
+                    <img src="${userAvatarSrc}" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%23ccc%22><path d=%22M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z%22/></svg>'">
+                    ${unreadBadge}
+                </div>
                 <div class="user-info">
                     <div class="user-name-row">
                         <span class="user-name">客户 ${u.id}</span>
@@ -581,11 +622,14 @@
             `;
             listDiv.appendChild(div);
         });
+
+        // 恢复滚动条
+        if (isPolling) listDiv.scrollTop = scrollPos;
     }
 
     async function selectUser(userId) {
         activeUserId = userId;
-        
+        unreadCounts[userId] = 0; // 点击后清空该客户的未读数量
         document.getElementById('emptyState').classList.add('hidden');
         document.getElementById('settings-view').classList.add('hidden');
         document.getElementById('main-chat').classList.remove('hidden');

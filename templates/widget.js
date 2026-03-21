@@ -203,7 +203,11 @@
             msgDiv.style.padding = "0";
             msgDiv.style.boxShadow = "none";
         } else {
-            msgDiv.innerText = text;
+            if (sender === 'agent') {
+                msgDiv.innerHTML = text; // 客服回复渲染HTML
+            } else {
+                msgDiv.innerText = text; // 自己发的消息显示纯文本
+            }
         }
 
         row.appendChild(avatar);

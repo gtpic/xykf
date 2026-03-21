@@ -54,6 +54,12 @@
         .cs-msg.agent { background: white; color: #333; border-radius: 16px 16px 16px 4px; border: 1px solid #f0f0f0; }
         .cs-msg.user { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 16px 16px 4px 16px; }
         
+        /* 快捷提问区 */
+        #cs-faq-area { padding: 12px 16px 0; background: #f8f9fa; display: flex; overflow-x: auto; white-space: nowrap; border-top: 1px solid #f0f0f0; }
+        #cs-faq-area::-webkit-scrollbar { display: none; }
+        .cs-faq-btn { background: white; border: 1px solid #e4e4e4; border-radius: 16px; padding: 6px 14px; font-size: 13px; color: #555; cursor: pointer; margin-right: 8px; flex-shrink: 0; transition: all 0.2s; }
+        .cs-faq-btn:hover { border-color: #764ba2; color: #764ba2; }
+        
         /* 输入区 */
         #cs-input-area { padding: 16px; background: white; border-top: 1px solid #f0f0f0; display: flex; align-items: center; }
         #cs-input { flex: 1; margin-right: 12px; padding: 12px 16px; border: 1px solid #e4e4e4; border-radius: 24px; outline: none; font-size: 14px; background: #f8f9fa; transition: all 0.3s; }
@@ -99,6 +105,7 @@
                 </div>
             </div>
             <div id="cs-chat"></div>
+            <div id="cs-faq-area" style="display:none;"></div>
             <div id="cs-input-area">
                 <input type="text" id="cs-input" placeholder="输入你想咨询的问题...">
                 <button id="cs-send">
@@ -139,7 +146,24 @@
     let isPolling = false;
     let historyLoaded = false;
     let widgetConfig = { agent_icon: '', user_icon: '' };
-    fetch(`${API_BASE}/api/customer/config`).then(r => r.json()).then(data => widgetConfig = data).catch(e => {});
+    fetch(`${API_BASE}/api/customer/config`).then(r => r.json()).then(data => {
+        widgetConfig = data;
+        if (data.faq_list) {
+            const faqArea = document.getElementById("cs-faq-area");
+            const lines = data.faq_list.split('\n').filter(l => l.includes('|'));
+            if (lines.length > 0) {
+                faqArea.style.display = 'flex';
+                lines.forEach(line => {
+                    const q = line.split('|')[0].trim();
+                    const btn = document.createElement("button");
+                    btn.className = "cs-faq-btn";
+                    btn.innerText = q;
+                    btn.onclick = () => { input.value = q; sendMessage(); };
+                    faqArea.appendChild(btn);
+                });
+            }
+        }
+    }).catch(e => {});
 
     function appendMsg(text, sender) {
         const row = document.createElement("div");

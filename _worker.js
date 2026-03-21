@@ -138,7 +138,12 @@ export default {
                       await env.kv.put(`topic_${topicId}`, userId.toString());
                   }
               }
-              const tgMsg = topicId ? content : `客户ID:${userId} 发来消息：\n${content}`;
+              
+              let tgMsg = topicId ? content : `客户ID:${userId} 发来消息：\n${content}`;
+              if (content.startsWith("data:image/")) {
+                  tgMsg = topicId ? "[客户发来一张图片，请前往网页后台查看]" : `客户ID:${userId} 发来 [图片消息，请前往网页后台查看]`;
+              }
+              
               await fetch(`https://api.telegram.org/bot${config.tg_bot_token}/sendMessage`, {
                   method: "POST", headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ chat_id: config.tg_chat_id, message_thread_id: topicId, text: tgMsg })

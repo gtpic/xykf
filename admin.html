@@ -314,7 +314,15 @@
             // 4. 生成聊天气泡
             const bubble = document.createElement("div");
             bubble.className = `msg ${m.sender}`;
-            bubble.innerText = m.content;
+            
+            if (m.content.startsWith("data:image/")) {
+                bubble.innerHTML = `<img src="${m.content}" style="max-width: 200px; border-radius: 4px; cursor: pointer;" onclick="window.open('${m.content}')" />`;
+                bubble.style.background = "transparent";
+                bubble.style.padding = "0";
+                bubble.style.boxShadow = "none";
+            } else {
+                bubble.innerText = m.content;
+            }
 
             // 5. 组合拼装
             wrapper.appendChild(timeDiv);

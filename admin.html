@@ -398,7 +398,6 @@
                     </div>
                     <input type="file" id="admin-img-upload" accept="image/*" style="display:none" onchange="sendAdminImage(this)">
                     <div id="emoji-picker" class="hidden"></div>
-                    </div>
                     <div class="input-box">
                         <textarea id="chat-input" placeholder="输入消息..."></textarea>
                     </div>
@@ -776,7 +775,7 @@
             alert("账号或密码已修改，请重新登录。");
             localStorage.removeItem("cs_admin_token");
             location.reload();
-            } else {
+        } else {
             closeSettings();
         }
     }
@@ -833,10 +832,6 @@
             pollCurrentChat(); // 立即刷新聊天记录
         };
         reader.readAsDataURL(file);
-    }
-        } else {
-            closeSettings();
-        }
     }
 </script>
 </body>

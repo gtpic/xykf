@@ -62,7 +62,7 @@
         
         /* 输入区 */
         #cs-input-area { padding: 16px; background: white; border-top: 1px solid #f0f0f0; display: flex; align-items: center; }
-        #cs-input { flex: 1; margin-right: 12px; padding: 12px 16px; border: 1px solid #e4e4e4; border-radius: 24px; outline: none; font-size: 14px; background: #f8f9fa; transition: all 0.3s; }
+        #cs-input { flex: 1; min-width: 0; box-sizing: border-box; margin-right: 12px; padding: 12px 16px; border: 1px solid #e4e4e4; border-radius: 24px; outline: none; font-size: 14px; background: #f8f9fa; transition: all 0.3s; }
         #cs-input:focus { border-color: #764ba2; background: white; box-shadow: 0 0 0 3px rgba(118, 75, 162, 0.1); }
         
         /* 发送按钮 */

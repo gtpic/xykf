@@ -637,7 +637,14 @@
         document.getElementById('settings-view').classList.add('hidden');
         document.getElementById('main-chat').classList.remove('hidden');
         document.getElementById('chat-header').innerText = `客户 ${userId}`;        
-        loadUsers(); 
+        document.querySelectorAll('.user-item').forEach(item => {
+            item.classList.remove('active');
+            if (item.querySelector('.user-name') && item.querySelector('.user-name').innerText === `客户 ${userId}`) {
+                item.classList.add('active');
+                const badge = item.querySelector('.unread-badge');
+                if (badge) badge.remove();
+            }
+        });
         await pollCurrentChat();
     }
 

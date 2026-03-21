@@ -659,13 +659,11 @@
             const msgTimestamp = new Date(m.created_at.replace(' ', 'T') + 'Z').getTime();
             // 如果与上一条消息间隔超过5分钟(300000毫秒)，则显示时间标签
             if (msgTimestamp - chatLastMsgTime > 300000) {
-            // 如果与上一条消息间隔超过5分钟(300000毫秒)，则显示时间标签
-            if (msgTimestamp - lastMsgTime > 300000) {
                 const timeDiv = document.createElement("div");
                 timeDiv.style.cssText = 'text-align: center; font-size: 12px; color: #b2b2b2; margin: 15px 0 10px 0; clear: both; width: 100%;';
                 timeDiv.innerText = formatTime(msgTimestamp);
                 win.appendChild(timeDiv);
-                lastMsgTime = msgTimestamp;
+                chatLastMsgTime = msgTimestamp;
             }
             const row = document.createElement("div");
             row.className = `msg-row ${m.sender}`;      

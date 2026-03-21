@@ -175,6 +175,7 @@
                     <h3>💬 自动回复与快捷回复</h3>
                     <div class="input-group"><label>自动回复设置</label><textarea id="set-auto-reply" rows="3" placeholder="例如：你好，请问有什么可以帮您？"></textarea></div>
                     <div class="input-group"><label>快捷回复 (每行一条)</label><textarea id="set-quick-reply" rows="4" placeholder="好的，请稍等。\n请提供您的订单号。"></textarea></div>
+                    <div class="input-group"><label>客户快捷提问 (格式：问题|自动回复内容，每行一条)</label><textarea id="set-faq-list" rows="4" placeholder="使用教程|请访问 xxx 获取教程&#10;人工服务|正在为您转接人工客服..."></textarea></div>
                 </div>
 
                 <div id="tab-export" class="tab-pane">
@@ -356,6 +357,7 @@
         document.getElementById('set-user-icon').value = data.user_icon || "";
         document.getElementById('set-auto-reply').value = data.auto_reply || "";
         document.getElementById('set-quick-reply').value = data.quick_reply || "";
+        document.getElementById('set-faq-list').value = data.faq_list || "";
     }
     
     function closeSettings() { 
@@ -407,7 +409,8 @@
             agentIcon: document.getElementById('set-agent-icon').value,
             userIcon: document.getElementById('set-user-icon').value,
             autoReply: document.getElementById('set-auto-reply').value,
-            quickReply: document.getElementById('set-quick-reply').value
+            quickReply: document.getElementById('set-quick-reply').value,
+            faqList: document.getElementById('set-faq-list').value
         };
         if (u) payload.username = u;
         if (p) payload.password = p;

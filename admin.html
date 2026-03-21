@@ -336,7 +336,11 @@
                 bubble.style.padding = "0";
                 bubble.style.boxShadow = "none";
             } else {
-                bubble.innerText = m.content;
+                if (m.sender === 'agent') {
+                    bubble.innerHTML = m.content; // 客服的消息渲染HTML
+                } else {
+                    bubble.innerText = m.content; // 客户的消息强制当成纯文本
+                }
             }
 
             // 5. 组合拼装

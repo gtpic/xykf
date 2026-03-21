@@ -196,8 +196,9 @@
         const msgDiv = document.createElement("div");
         msgDiv.className = `cs-msg ${sender}`;
         
-        if (text.startsWith("data:image/")) {
-            msgDiv.innerHTML = `<img src="${text}" style="max-width: 100%; border-radius: 8px; cursor: pointer;" onclick="var w=window.open(''); w.document.write('<img src=&quot;${text}&quot; style=&quot;max-width:100%;&quot; />'); w.document.close();" />`;
+        if (text.startsWith("data:image/") || text.startsWith("IMG:")) {
+            const imgSrc = text.startsWith("IMG:") ? text.substring(4) : text;
+            msgDiv.innerHTML = `<img src="${imgSrc}" style="max-width: 100%; border-radius: 8px; cursor: pointer;" onclick="window.open('${imgSrc}')" />`;
             msgDiv.style.background = "transparent";
             msgDiv.style.padding = "0";
             msgDiv.style.boxShadow = "none";

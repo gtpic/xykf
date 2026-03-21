@@ -107,6 +107,10 @@
             <div id="cs-chat"></div>
             <div id="cs-faq-area" style="display:none;"></div>
             <div id="cs-input-area">
+                <input type="file" id="cs-upload-input" accept="image/*" style="display:none;">
+                <button id="cs-upload-btn" style="background:none; border:none; cursor:pointer; padding:0 12px 0 0; display:flex; align-items:center;">
+                    <svg viewBox="0 0 24 24" style="width:24px; height:24px; fill:#764ba2;"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+                </button>
                 <input type="text" id="cs-input" placeholder="输入你想咨询的问题...">
                 <button id="cs-send">
                     <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
@@ -191,7 +195,15 @@
         
         const msgDiv = document.createElement("div");
         msgDiv.className = `cs-msg ${sender}`;
-        msgDiv.innerText = text;
+        
+        if (text.startsWith("data:image/")) {
+            msgDiv.innerHTML = `<img src="${text}" style="max-width: 100%; border-radius: 8px; cursor: pointer;" onclick="window.open('${text}')" />`;
+            msgDiv.style.background = "transparent";
+            msgDiv.style.padding = "0";
+            msgDiv.style.boxShadow = "none";
+        } else {
+            msgDiv.innerText = text;
+        }
 
         row.appendChild(avatar);
         row.appendChild(msgDiv);
@@ -286,4 +298,49 @@
 
     sendBtn.onclick = sendMessage;
     input.onkeypress = (e) => { if (e.key === 'Enter') sendMessage(); };
+
+    // 新增：处理图片上传与粘贴的逻辑
+    const uploadBtn = document.getElementById("cs-upload-btn");
+    const uploadInput = document.getElementById("cs-upload-input");
+
+    uploadBtn.onclick = () => uploadInput.click();
+
+    function sendImageFile(file) {
+        if (!file || !file.type.startsWith("image/")) return;
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const base64Img = e.target.result;
+            appendMsg(base64Img, 'user');
+            try {
+                const res = await fetch(`${API_BASE}/api/customer/send`, {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ userId: userId, content: base64Img })
+                });
+                const data = await res.json();
+                if (data.success && data.userId && !userId) {
+                    userId = data.userId;
+                    localStorage.setItem("cs_user_id", userId);
+                    updateIdDisplay();
+                }
+            } catch (err) { console.error("图片发送失败", err); }
+        };
+        reader.readAsDataURL(file);
+    }
+
+    uploadInput.onchange = (e) => {
+        if (e.target.files.length > 0) sendImageFile(e.target.files[0]);
+        uploadInput.value = ""; 
+    };
+
+    input.addEventListener("paste", (e) => {
+        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+        for (let index in items) {
+            const item = items[index];
+            if (item.kind === 'file' && item.type.startsWith("image/")) {
+                const file = item.getAsFile();
+                sendImageFile(file);
+                e.preventDefault();
+            }
+        }
+    });
 })();

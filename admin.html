@@ -903,7 +903,7 @@
             // 带有 IMG: 前缀，匹配你现有的渲染判断逻辑
             await apiFetch("/api/admin/reply", { 
                 method: "POST", 
-                body: JSON.stringify({ userId: activeUserId, content: "IMG:" + base64Img }) 
+                body: JSON.stringify({ userId: activeUserId, content: base64Img }) 
             });
             input.value = ''; // 清空选中，以便下次可以选择同一张图片
             pollCurrentChat(); // 立即刷新聊天记录
@@ -928,7 +928,7 @@
                     // 调用现有的发送接口
                     await apiFetch("/api/admin/reply", { 
                         method: "POST", 
-                        body: JSON.stringify({ userId: activeUserId, content: "IMG:" + base64Img }) 
+                        body: JSON.stringify({ userId: activeUserId, content: base64Img }) 
                     });
                     pollCurrentChat(); // 立即刷新聊天记录
                 };

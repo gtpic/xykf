@@ -59,7 +59,17 @@ export default {
             if (quickReply !== undefined) await env.db.prepare("UPDATE config SET value = ? WHERE key = 'quick_reply'").bind(quickReply).run();
             if (username) await env.db.prepare("UPDATE config SET value = ? WHERE key = 'admin_username'").bind(username).run();
             if (password) await env.db.prepare("UPDATE config SET value = ? WHERE key = 'admin_password'").bind(password).run();
-            if (botToken !== undefined) await env.db.prepare("UPDATE config SET value = ? WHERE key = 'tg_bot_token'").bind(botToken).run();
+            if (botToken !== undefined) {
+              // 1. 将新 Token 更新到数据库
+              await env.db.prepare("UPDATE config SET value = ? WHERE key = 'tg_bot_token'").bind(botToken).run();
+              
+              // 2. 自动拼接当前域名的 Webhook 地址
+              const webhookUrl = `https://${url.host}/tg/webhook`;
+              
+              // 3. 自动向 Telegram 发起绑定请求
+              await fetch(`https://api.telegram.org/bot${botToken}/setWebhook?url=${webhookUrl}`)
+                  .catch(e => console.error("Webhook 自动绑定失败:", e));
+          }
             if (chatId !== undefined) await env.db.prepare("UPDATE config SET value = ? WHERE key = 'tg_chat_id'").bind(chatId).run();
             return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
           }
